@@ -36,7 +36,7 @@ async def new_stock(data:dict,db :Session = Depends(get_db)):
         price=float(data['price'])
         stock = int(data['stock'])
     except (ValueError,TypeError):
-        raise HTTPException(status_code=400, detail="clorth_id must be integers , price must be a number")
+        raise HTTPException(status_code=400, detail="cloth_id must be integers , price must be a number")
 
     existing_cloth = db.query(Clothes).filter(Clothes.cloth_id == cloth_id).first()
 
@@ -68,28 +68,67 @@ async def new_stock(data:dict,db :Session = Depends(get_db)):
 
 
 
-# @app.put("/stock/update_stock/{cloth_id}")
-# async def update_stock(request:Request):
-#     try:
-#         data = await request.json()
-#         cloth_id = int(data["cloth_id"])
-#         fabric = data["fabric"]
-#         price = int(data["price"])
-#         quantity = int(data["quantity"])
-#     except Exception :
-#         raise HTTPException(status_code=404, detail="Cloth not found")
-#     if cloth_id not in stock:
-#         raise HTTPException(status_code=404 , detail="cloth not found")
-#     stock[cloth_id]={
-#         "fabric" : fabric,
-#         "price" : price,
-#         "quantity" : quantity
-#     }
-#     return {
-#         "message" : "cloth modified successfully"
-#     }
+@app.put("/stock/update_stock/{cloth_id}")
+async def update_stock(data:dict,db : Session = Depends(get_db)):
+    required = ["cloth_id","name","price","stock"]
+    missing = []
+    for f in required:
+        if f not in data:
+            missing.append(f)
 
-# @app.delete("/stock/delete_stock/{cloth_id}")
+    if missing:
+        raise HTTPException(status_code=400, detail=f"{missing} are missing")
+
+    try:
+        cloth_id = int(data['cloth_id'])
+        name = str(data['name'])
+        price = float(data['price'])
+        stock = int(data['stock'])
+    except (ValueError,TypeError):
+        raise HTTPException(status_code=400, detail = "cloth id must be integers, price must be a number")
+
+    cloth = db.query(Clothes).filter(Clothes.cloth_id == cloth_id).first()
+
+    if not cloth:
+        raise HTTPException(
+            status_code= 409,
+            detail="Cloth id does not exist"
+        )
+    cloth.name = name
+    cloth.price = price
+    cloth.stock = stock
+    
+    
+    db.commit()
+    db.refresh(cloth)
+
+    return{
+        "message": "Cloth modified Successfully!!",
+        "cloth" : cloth
+    }
+
+@app.delete("/stock/delete_stock/{cloth_id}")
+def delete_stock(cloth_id,db :Session = Depends(get_db)):
+    cloth = db.query(Clothes).filter(Clothes.cloth_id == cloth_id).first()
+
+    if not cloth:
+        raise HTTPException(status_code=404, detail="cloth not found")
+    db.delete(cloth)
+    db.commit()
+    return{
+        "message" : "Cloth deleted Successfully" 
+    }
+
+
+
+
+
+
+
+
+
+
+    # @app.delete("/stock/delete_stock/{cloth_id}")
 # async def delete_cloth(cloth_id:int):
 #     print(cloth_id)
 #     if int(cloth_id) not in stock:
